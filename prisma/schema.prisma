@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id                  String       @id @default(uuid())
+  email               String       @unique
+  username            String       @unique
+  password            String       @db.VarChar(250)
+  profile             Profile?
+  eventsHosted        Event[]
+  invitationsReceived Invitation[]
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime?    @updatedAt
+}
+
+model Profile {
+  id        String    @id @default(uuid())
+  firstName String
+  lastName  String
+  imgUrl    String    @default("https://www.pngfind.com/pngs/m/676-6764065_default-profile-picture-transparent-hd-png-download.png")
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model Event {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  posterUrl   String?
+  hostId      String
+  host        User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  slots       Slot[]
+  invitations Invitation[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime?    @updatedAt
+}
+
+model Slot {
+  id          String       @id @default(uuid())
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  eventId     String
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitations Invitation[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime?    @updatedAt
+}
+
+model Invitation {
+  id           String    @id @default(uuid())
+  inviteeEmail String
+  inviteeId    String?
+  invitee      User?     @relation(fields: [inviteeId], references: [id], onDelete: Cascade)
+  eventId      String
+  Event        Event     @relation(fields: [eventId], references: [id])
+  votedSlots   Slot[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime? @updatedAt
+}
