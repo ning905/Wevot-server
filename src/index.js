@@ -3,12 +3,17 @@ import express from 'express'
 import 'express-async-errors'
 import cors from 'cors'
 import { sendDataResponse } from './utils/serverResponse.js'
+import userRouter from './routers/user.js'
+import eventRouter from './routers/event.js'
 
 const app = express()
 app.disable('x-powered-by')
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+app.use('/users', userRouter)
+app.use('/events', eventRouter)
 
 app.use((error, req, res, next) => {
   console.error(error)
