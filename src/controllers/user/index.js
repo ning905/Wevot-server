@@ -5,12 +5,15 @@ import {
   InvalidLoginError,
   MissingInputError,
   NoAccessError,
+  BadRequestError,
+  ServerConflictError,
 } from '../../utils/Errors.js'
 import { sendDataResponse, sendMessageResponse } from '../../utils/serverResponse.js'
 import { sendVerificationEmail } from './validateEmail.js'
 import { createUserInDB, createVerificationInDB } from './utils.js'
 import { compareHash, hashData } from '../../utils/hashData.js'
 import { v4 as uuid } from 'uuid'
+import { generateJwt } from '../../utils/jwtToken.js'
 
 const serverError = new InternalServerError()
 
@@ -23,8 +26,48 @@ export async function userSignUp(req, res) {
     await createVerificationInDB(user.id, hashedString)
 
     await sendVerificationEmail(user.id, user.email, uniqueString)
-    console.log('email sent')
+
     return sendMessageResponse(res, 201, 'Signup successful')
+  } catch (err) {
+    sendMessageResponse(res, serverError.code, serverError.message)
+    throw err
+  }
+}
+
+export async function resendVerificationEmail(req, res) {
+  const { username } = req.params
+
+  if (!username) {
+    const err = new BadRequestError('Missing user identifier')
+    return sendMessageResponse(res, err.code, err.message)
+  }
+
+  try {
+    const foundUser = await dbClient.user.findUnique({ where: { username } })
+    if (!foundUser) {
+      const notFound = new NotFoundError('user', 'username')
+      return sendMessageResponse(res, notFound.code, notFound.message)
+    }
+
+    const foundVerification = await dbClient.userVerification.findUnique({
+      where: { userId: foundUser.id },
+    })
+    if (!foundVerification) {
+      const err = new ServerConflictError(
+        "Account record doesn't exist or has been verified already. Please sign up or log in."
+      )
+      return sendMessageResponse(res, err.code, err.message)
+    }
+
+    await dbClient.userVerification.delete({ where: { userId: foundUser.id } })
+
+    const uniqueString = uuid() + foundUser.id
+    const hashedString = await hashData(uniqueString)
+    await createVerificationInDB(foundUser.id, hashedString)
+
+    await sendVerificationEmail(foundUser.id, foundUser.email, uniqueString)
+
+    return sendMessageResponse(res, 201, 'Verification email resent')
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
@@ -33,12 +76,10 @@ export async function userSignUp(req, res) {
 
 export async function verifyUser(req, res) {
   const { userId, uniqueString } = req.params
-  console.log('userId: ', userId)
-  console.log('uniqueString: ', uniqueString)
+
   try {
     // check if the verification record exists
     const foundVerification = await dbClient.userVerification.findUnique({ where: { userId } })
-    console.log('foundVerification', foundVerification)
 
     if (!foundVerification) {
       return sendMessageResponse(
@@ -68,13 +109,13 @@ export async function verifyUser(req, res) {
     const updatedUser = await dbClient.user.update({
       where: { id: userId },
       data: { isVerified: true },
-      include: { profile: true },
     })
 
     await dbClient.userVerification.delete({ where: { userId } })
 
+    const token = generateJwt(updatedUser.username)
     delete updatedUser.password
-    sendDataResponse(res, 201, updatedUser)
+    return sendDataResponse(res, 200, { token, user: updatedUser })
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
@@ -96,7 +137,6 @@ export async function userLogin(req, res) {
       where: {
         OR: [{ email: identifier }, { username: identifier }],
       },
-      include: { profile: true },
     })
 
     if (!foundUser) {
@@ -115,8 +155,9 @@ export async function userLogin(req, res) {
       return sendMessageResponse(res, err.code, err.message)
     }
 
+    const token = generateJwt(foundUser.username)
     delete foundUser.password
-    return sendDataResponse(res, 200, foundUser)
+    return sendDataResponse(res, 200, { token, user: foundUser })
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
