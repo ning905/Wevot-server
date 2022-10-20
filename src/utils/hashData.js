@@ -1,10 +1,8 @@
 import bcrypt from 'bcrypt'
 
 export async function hashData(data, saltRounds = 10) {
-  console.log('start hashing')
   try {
     const hashed = await bcrypt.hash(data, saltRounds)
-    console.log('finished hashing')
     return hashed
   } catch (e) {
     throw e

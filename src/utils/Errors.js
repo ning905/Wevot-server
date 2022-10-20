@@ -50,7 +50,7 @@ export class NotFoundError {
 export class InUseError {
   constructor(target, info) {
     this.code = 409
-    this.message = `${target} with the provided ${info} already exists`
+    this.message = { field: info, content: `${target} with the provided ${info} already exists` }
   }
 }
 
