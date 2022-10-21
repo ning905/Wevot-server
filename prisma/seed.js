@@ -1,13 +1,13 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcrypt'
+import { v4 as uuid } from 'uuid'
+import { hashData } from '../src/utils/hashData.js'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  const saltRounds = 8
-  const password = await bcrypt.hash('123', saltRounds)
+  const password = await hashData('123')
   const slots = []
-  const invitations = []
+  const participants = []
   const slotData = [
     {
       startTime: new Date('November 17, 2022 09:30:00'),
@@ -32,6 +32,7 @@ async function main() {
         email,
         username,
         password,
+        isVerified: true,
         profile: {
           create: {
             firstName,
@@ -45,6 +46,16 @@ async function main() {
     return user
   }
 
+  async function createInvitation(eventId, uniqueString, expiresAt) {
+    const invitation = await prisma.invitation.create({
+      data: {
+        eventId,
+        uniqueString,
+        expiresAt,
+      },
+    })
+  }
+
   async function createEvent(title, description, posterUrl, hostId) {
     const event = await prisma.event.create({
       data: {
@@ -54,7 +65,17 @@ async function main() {
         hostId,
       },
     })
-    return event
+
+    const uniqueString = uuid() + event.id
+    const hashedString = await hashData(uniqueString)
+
+    const invitation = await createInvitation(
+      event.id,
+      hashedString,
+      new Date('November 27, 2022 09:30:00')
+    )
+
+    return { event, invitation }
   }
 
   async function createSlot(startTime, endTime, location, eventId) {
@@ -69,19 +90,12 @@ async function main() {
     return slot
   }
 
-  async function createInvitation(inviteeEmail, eventId, slot1Id, slot2Id) {
+  async function createParticipant(email, slot1Id, slot2Id) {
     const query = {
       data: {
-        inviteeEmail,
-        eventId,
+        email,
         votedSlots: {},
       },
-    }
-
-    const foundUser = await prisma.user.findUnique({ where: { email: inviteeEmail } })
-
-    if (foundUser) {
-      query.data.inviteeId = foundUser.id
     }
 
     if (!slot2Id) {
@@ -90,8 +104,8 @@ async function main() {
       query.data.votedSlots.connect = [{ id: slot1Id }, { id: slot2Id }]
     }
 
-    const invitation = await prisma.invitation.create(query)
-    return invitation
+    const participant = await prisma.participant.create(query)
+    return participant
   }
 
   const user = await createUser(
@@ -104,13 +118,14 @@ async function main() {
   )
   console.log('User created: ', user)
 
-  const event = await createEvent(
+  const { event, invitation } = await createEvent(
     'New Event',
     'This is an event description',
     '"https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1686&q=80"',
     user.id
   )
   console.log('Event created: ', event)
+  console.log('Invitation created: ', invitation)
 
   for (let i = 0; i < slotData.length; i++) {
     const data = slotData[i]
@@ -120,16 +135,16 @@ async function main() {
   console.log('Slots created: ', slots)
 
   for (let i = 1; i <= 3; i++) {
-    let slotsToVote
+    let votedSlots
     if (i < 3) {
-      slotsToVote = [slots[i - 1].id, slots[i].id]
+      votedSlots = [slots[i - 1].id, slots[i].id]
     } else {
-      slotsToVote = [slots[i - 1].id]
+      votedSlots = [slots[i - 1].id]
     }
-    const invitation = await createInvitation(`user${i}@user.com`, event.id, ...slotsToVote)
-    invitations.push(invitation)
+    const participant = await createParticipant(`user${i}@user.com`, ...votedSlots)
+    participants.push(participant)
   }
-  console.log('Invitations created: ', invitations)
+  console.log('Participants created: ', participants)
 }
 
 main()

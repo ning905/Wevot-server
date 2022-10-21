@@ -12,17 +12,16 @@ datasource db {
 }
 
 model User {
-  id                  String            @id @default(uuid())
-  email               String            @unique
-  username            String            @unique
-  password            String            @db.VarChar(250)
-  profile             Profile?
-  isVerified          Boolean           @default(false)
-  verifications       UserVerification?
-  eventsHosted        Event[]
-  invitationsReceived Invitation[]
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime?         @updatedAt
+  id            String            @id @default(uuid())
+  email         String            @unique
+  username      String            @unique
+  password      String            @db.VarChar(250)
+  profile       Profile?
+  isVerified    Boolean           @default(false)
+  verifications UserVerification?
+  eventsHosted  Event[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime?         @updatedAt
 }
 
 model UserVerification {
@@ -47,38 +46,50 @@ model Profile {
 }
 
 model Event {
-  id          String       @id @default(uuid())
+  id          String      @id @default(uuid())
   title       String
   description String?
   posterUrl   String?
   hostId      String
-  host        User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  host        User        @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  invitation  Invitation?
   slots       Slot[]
-  invitations Invitation[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime?    @updatedAt
-}
-
-model Slot {
-  id          String       @id @default(uuid())
-  startTime   DateTime
-  endTime     DateTime
-  location    String?
-  eventId     String
-  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  invitations Invitation[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime?    @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime?   @updatedAt
 }
 
 model Invitation {
   id           String    @id @default(uuid())
-  inviteeEmail String
-  inviteeId    String?
-  invitee      User?     @relation(fields: [inviteeId], references: [id], onDelete: Cascade)
-  eventId      String
-  Event        Event     @relation(fields: [eventId], references: [id])
-  votedSlots   Slot[]
+  uniqueString String    @unique
+  eventId      String    @unique
+  event        Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
   createdAt    DateTime  @default(now())
   updatedAt    DateTime? @updatedAt
+}
+
+enum SlotStatus {
+  PENDING
+  BOOKED
+}
+
+model Slot {
+  id           String        @id @default(uuid())
+  startTime    DateTime
+  endTime      DateTime
+  location     String?
+  status       SlotStatus    @default(PENDING)
+  eventId      String
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participants Participant[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+}
+
+model Participant {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  votedSlots Slot[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime? @updatedAt
 }
