@@ -46,14 +46,14 @@ async function main() {
     return user
   }
 
-  async function createInvitation(eventId, uniqueString, expiresAt) {
+  async function createInvitation(eventId, expiresAt) {
     const invitation = await prisma.invitation.create({
       data: {
         eventId,
-        uniqueString,
         expiresAt,
       },
     })
+    return invitation
   }
 
   async function createEvent(title, description, posterUrl, hostId) {
@@ -66,14 +66,7 @@ async function main() {
       },
     })
 
-    const uniqueString = uuid() + event.id
-    const hashedString = await hashData(uniqueString)
-
-    const invitation = await createInvitation(
-      event.id,
-      hashedString,
-      new Date('November 27, 2022 09:30:00')
-    )
+    const invitation = await createInvitation(event.id, new Date('November 27, 2022 09:30:00'))
 
     return { event, invitation }
   }
@@ -90,10 +83,11 @@ async function main() {
     return slot
   }
 
-  async function createParticipant(email, slot1Id, slot2Id) {
+  async function createParticipant(email, eventId, slot1Id, slot2Id) {
     const query = {
       data: {
         email,
+        eventId,
         votedSlots: {},
       },
     }
@@ -141,7 +135,7 @@ async function main() {
     } else {
       votedSlots = [slots[i - 1].id]
     }
-    const participant = await createParticipant(`user${i}@user.com`, ...votedSlots)
+    const participant = await createParticipant(`user${i}@user.com`, event.id, ...votedSlots)
     participants.push(participant)
   }
   console.log('Participants created: ', participants)
