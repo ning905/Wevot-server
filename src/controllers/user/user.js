@@ -109,6 +109,7 @@ export async function verifyUser(req, res) {
     const updatedUser = await dbClient.user.update({
       where: { id: userId },
       data: { isVerified: true },
+      include: { profile: true, eventsHosted: true },
     })
 
     await dbClient.userVerification.delete({ where: { userId } })
@@ -137,6 +138,7 @@ export async function userLogin(req, res) {
       where: {
         OR: [{ email: identifier }, { username: identifier }],
       },
+      include: { profile: true, eventsHosted: true },
     })
 
     if (!foundUser) {
@@ -158,6 +160,35 @@ export async function userLogin(req, res) {
     const token = generateJwt(foundUser.username)
     delete foundUser.password
     return sendDataResponse(res, 200, { token, user: foundUser })
+  } catch (err) {
+    sendMessageResponse(res, serverError.code, serverError.message)
+    throw err
+  }
+}
+
+export async function getUserByUsername(req, res) {
+  const { username } = req.params
+
+  try {
+    const foundUser = await dbClient.user.findUnique({ where: { username } })
+
+    if (!foundUser) {
+      const notFound = new NotFoundError('user', 'username')
+      return sendMessageResponse(res, notFound.code, notFound.message)
+    }
+
+    if (foundUser.id !== req.body.user.id) {
+      const err = new NoAccessError()
+      return sendMessageResponse(res, err.code, err.message)
+    }
+
+    if (!foundUser.isVerified) {
+      const err = new NoAccessError('This account has not been verified. Please check your inbox.')
+      return sendMessageResponse(res, err.code, err.message)
+    }
+
+    delete foundUser.password
+    return sendDataResponse(res, 200, foundUser)
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
