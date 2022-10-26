@@ -23,7 +23,7 @@ export async function getAllEvents(req, res) {
         OR: [{ hostId: id }, { participants: { some: { email: email } } }],
       },
       orderBy: { createdAt: 'desc' },
-      include: { slots: true },
+      include: { invitation: true, slots: true, participants: { include: { votedSlots: true } } },
     })
 
     sendDataResponse(res, 200, events)
@@ -44,12 +44,12 @@ export async function getEventById(req, res) {
       return sendMessageResponse(res, notFound.code, notFound.message)
     }
 
-    if (foundEvent.hostId !== req.user.id) {
-      const noAccess = new NoAccessError()
-      return sendMessageResponse(res, noAccess.code, noAccess.message)
+    let expired = false
+    if (foundEvent.invitation.expiresAt < Date.now()) {
+      expired = true
     }
 
-    sendDataResponse(res, 200, foundEvent)
+    sendDataResponse(res, 200, { event: foundEvent, expired })
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
@@ -149,8 +149,10 @@ export async function deleteEventById(req, res) {
 }
 
 export async function createParticipantForEvent(req, res) {
-  const { code, email } = req.params
-
+  const { code } = req.params
+  const { email, name, votedSlots } = req.body
+  const votesQuery = votedSlots.map((vote) => ({ id: vote.id }))
+  console.log('votes query: ', votesQuery)
   try {
     const foundInvitation = await findInvitationInDB(code)
 
@@ -174,11 +176,12 @@ export async function createParticipantForEvent(req, res) {
           email,
         },
       },
-      update: { name: req.body.name },
+      update: { name, votedSlots: { connect: votesQuery } },
       create: {
         email,
         eventId,
-        name: req.body.name,
+        name,
+        votedSlots: { connect: votesQuery },
       },
       include: { votedSlots: true },
     })
@@ -189,7 +192,7 @@ export async function createParticipantForEvent(req, res) {
   }
 }
 
-export async function createParticipantVotes(req, res) {
+export async function updateParticipantVotes(req, res) {
   const { code, email } = req.params
 
   try {
@@ -216,8 +219,8 @@ export async function createParticipantVotes(req, res) {
     }
     console.log('foundParticipant: ', foundParticipant)
 
-    const voted = await updateVoteInDB(eventId, email, req.body.votedSlots)
-    return sendDataResponse(res, 201, voted)
+    const updated = await updateVoteInDB(eventId, email, req.body.votedSlots)
+    return sendDataResponse(res, 201, updated)
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err

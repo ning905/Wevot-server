@@ -9,7 +9,7 @@ export async function findEventInDB(id) {
       include: {
         slots: {
           include: {
-            participants: true,
+            participants: { include: { votedSlots: true } },
           },
         },
         invitation: true,

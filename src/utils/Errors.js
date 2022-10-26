@@ -35,7 +35,7 @@ export class NoAccessError {
 
 export class InvalidLoginError {
   constructor() {
-    this.code = 404
+    this.code = 400
     this.message = 'Invalid credentials provided'
   }
 }
