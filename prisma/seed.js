@@ -26,22 +26,15 @@ async function main() {
     },
   ]
 
-  async function createUser(email, username, password, firstName, lastName, imgUrl) {
+  async function createUser(email, username, password, imgUrl) {
     const user = await prisma.user.create({
       data: {
         email,
         username,
         password,
         isVerified: true,
-        profile: {
-          create: {
-            firstName,
-            lastName,
-            imgUrl,
-          },
-        },
+        profileImgUrl: imgUrl,
       },
-      include: { profile: true },
     })
     return user
   }
@@ -106,8 +99,6 @@ async function main() {
     'user1@user.com',
     'username1',
     password,
-    'Name1',
-    'Surname1',
     'https://images.unsplash.com/photo-1614027164847-1b28cfe1df60?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=972&q=80'
   )
   console.log('User created: ', user)

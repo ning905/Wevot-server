@@ -16,7 +16,7 @@ model User {
   email         String            @unique
   username      String            @unique
   password      String            @db.VarChar(250)
-  profile       Profile?
+  profileImgUrl String            @default("https://www.pngfind.com/pngs/m/676-6764065_default-profile-picture-transparent-hd-png-download.png")
   isVerified    Boolean           @default(false)
   verifications UserVerification?
   eventsHosted  Event[]
@@ -32,17 +32,6 @@ model UserVerification {
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
   updatedAt    DateTime? @updatedAt
-}
-
-model Profile {
-  id        String    @id @default(uuid())
-  firstName String
-  lastName  String
-  imgUrl    String    @default("https://www.pngfind.com/pngs/m/676-6764065_default-profile-picture-transparent-hd-png-download.png")
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
 }
 
 model Event {
