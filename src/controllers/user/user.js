@@ -109,14 +109,13 @@ export async function verifyUser(req, res) {
     const updatedUser = await dbClient.user.update({
       where: { id: userId },
       data: { isVerified: true },
-      include: { profile: true, eventsHosted: true },
     })
-
-    await dbClient.userVerification.delete({ where: { userId } })
 
     const token = generateJwt(updatedUser.username)
     delete updatedUser.password
-    return sendDataResponse(res, 200, { token, user: updatedUser })
+    sendDataResponse(res, 200, { token, user: updatedUser })
+
+    await dbClient.userVerification.delete({ where: { userId } })
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
@@ -138,7 +137,6 @@ export async function userLogin(req, res) {
       where: {
         OR: [{ email: identifier }, { username: identifier }],
       },
-      include: { profile: true, eventsHosted: true },
     })
 
     if (!foundUser) {
@@ -170,14 +168,16 @@ export async function getUserByUsername(req, res) {
   const { username } = req.params
 
   try {
-    const foundUser = await dbClient.user.findUnique({ where: { username } })
+    const foundUser = await dbClient.user.findUnique({
+      where: { username },
+    })
 
     if (!foundUser) {
       const notFound = new NotFoundError('user', 'username')
       return sendMessageResponse(res, notFound.code, notFound.message)
     }
 
-    if (foundUser.id !== req.body.user.id) {
+    if (foundUser.id !== req.user.id) {
       const err = new NoAccessError()
       return sendMessageResponse(res, err.code, err.message)
     }
@@ -189,6 +189,39 @@ export async function getUserByUsername(req, res) {
 
     delete foundUser.password
     return sendDataResponse(res, 200, foundUser)
+  } catch (err) {
+    sendMessageResponse(res, serverError.code, serverError.message)
+    throw err
+  }
+}
+
+export async function updateUserById(req, res) {
+  const { username, profileImgUrl } = req.body
+  const { id } = req.params
+  try {
+    const foundUser = await dbClient.user.findUnique({ where: { id } })
+
+    if (!foundUser) {
+      const notFound = new NotFoundError('user', 'id')
+      return sendMessageResponse(res, notFound.code, notFound.message)
+    }
+
+    if (foundUser.id !== req.user.id) {
+      const err = new NoAccessError()
+      return sendMessageResponse(res, err.code, err.message)
+    }
+
+    if (!foundUser.isVerified) {
+      const err = new NoAccessError('This account has not been verified. Please check your inbox.')
+      return sendMessageResponse(res, err.code, err.message)
+    }
+
+    const updated = await dbClient.user.update({
+      where: { id },
+      data: { username, profileImgUrl },
+    })
+
+    sendDataResponse(res, 201, updated)
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err

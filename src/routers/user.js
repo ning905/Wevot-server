@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   getUserByUsername,
   resendVerificationEmail,
+  updateUserById,
   userLogin,
   userSignUp,
   verifyUser,
@@ -16,5 +17,7 @@ router.get('/:username', validateAuthentication, getUserByUsername)
 router.post('/login', userLogin)
 router.post('/signup', userSignUp)
 router.post('/signup/resend-email/:username', resendVerificationEmail)
+
+router.patch('/:id', validateAuthentication, updateUserById)
 
 export default router

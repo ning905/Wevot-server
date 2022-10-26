@@ -7,7 +7,6 @@ import {
   getEventByCode,
   getEventById,
   updateEventById,
-  createParticipantVotes,
 } from '../controllers/event/event.js'
 import { validateAuthentication } from '../middleware/auth.js'
 
@@ -18,10 +17,9 @@ router.get('/:id', validateAuthentication, getEventById)
 router.get('/participate/:code', getEventByCode)
 
 router.post('/', validateAuthentication, createEvent)
-router.post('/participate/:code/:email', createParticipantForEvent)
+router.post('/participate/:code', createParticipantForEvent)
 
 router.patch('/:id', validateAuthentication, updateEventById)
-router.patch('/participate/:code/:email', createParticipantVotes)
 
 router.delete('/:id', validateAuthentication, deleteEventById)
 
