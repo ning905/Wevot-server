@@ -7,9 +7,10 @@ export async function findEventInDB(id) {
     const foundEvent = await dbClient.event.findUnique({
       where: { id },
       include: {
+        participants: { include: { votedSlots: true } },
         slots: {
           include: {
-            participants: { include: { votedSlots: true } },
+            participants: true,
           },
         },
         invitation: true,
@@ -24,7 +25,6 @@ export async function findEventInDB(id) {
 
 export async function createEventInDB(data, hostId, res) {
   const { title, description, posterUrl, slots } = data
-  console.log('slots: ', slots)
 
   if (!title) {
     const err = new BadRequestError('An event must have a title')
@@ -74,7 +74,6 @@ export async function findInvitationInDB(id) {
 
 export async function updateEventInDB(id, data) {
   const { title, description, posterUrl, slots } = data
-  console.log('slots: ', slots)
   if (!title) {
     const err = new BadRequestError('An event must have a title')
     return sendMessageResponse(res, err.code, err.message)
@@ -108,7 +107,7 @@ export async function updateEventInDB(id, data) {
   }
 }
 
-export async function findParticipantInDB(eventId, email) {
+export async function findParticipantInDB(eventId, email, res) {
   if (!eventId || !email) {
     const err = new MissingInputError()
     return sendMessageResponse(res, err.code, err.message)
@@ -134,7 +133,6 @@ export async function findParticipantInDB(eventId, email) {
 export async function updateVoteInDB(eventId, oldEmail, votes) {
   try {
     const votesQuery = votes.map((vote) => ({ id: vote.id }))
-    console.log('votes query: ', votesQuery)
 
     const updated = await dbClient.participant.update({
       where: {
@@ -152,7 +150,6 @@ export async function updateVoteInDB(eventId, oldEmail, votes) {
     })
     return updated
   } catch (err) {
-    console.log('error: ', err)
     throw err
   }
 }

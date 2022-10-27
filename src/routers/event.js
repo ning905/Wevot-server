@@ -7,6 +7,7 @@ import {
   getEventByCode,
   getEventById,
   updateEventById,
+  deleteParticipantForEvent,
 } from '../controllers/event/event.js'
 import { validateAuthentication } from '../middleware/auth.js'
 
@@ -22,5 +23,6 @@ router.post('/participate/:code', createParticipantForEvent)
 router.patch('/:id', validateAuthentication, updateEventById)
 
 router.delete('/:id', validateAuthentication, deleteEventById)
+router.delete('/participate/:code/:email', deleteParticipantForEvent)
 
 export default router

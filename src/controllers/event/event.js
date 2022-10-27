@@ -89,11 +89,7 @@ export async function createEvent(req, res) {
     const event = await createEventInDB(req.body, req.user.id, res)
 
     const invitation = await createInvitationInDB(event.id, req.body.deadline)
-    console.log('invitation created: ', invitation)
-    const clientUrl = process.env.CLIENT_URL
-    const link = clientUrl + '/events/participate/' + invitation.id
-
-    sendDataResponse(res, 201, { event, link, code: invitation.id })
+    sendDataResponse(res, 201, event)
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
@@ -152,7 +148,6 @@ export async function createParticipantForEvent(req, res) {
   const { code } = req.params
   const { email, name, votedSlots } = req.body
   const votesQuery = votedSlots.map((vote) => ({ id: vote.id }))
-  console.log('votes query: ', votesQuery)
   try {
     const foundInvitation = await findInvitationInDB(code)
 
@@ -185,14 +180,17 @@ export async function createParticipantForEvent(req, res) {
       },
       include: { votedSlots: true },
     })
-    sendDataResponse(res, 201, participant)
+
+    const event = await findEventInDB(foundInvitation.eventId)
+
+    sendDataResponse(res, 201, { event, participant })
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
   }
 }
 
-export async function updateParticipantVotes(req, res) {
+export async function deleteParticipantForEvent(req, res) {
   const { code, email } = req.params
 
   try {
@@ -211,16 +209,19 @@ export async function updateParticipantVotes(req, res) {
     }
 
     const eventId = foundInvitation.eventId
-    const foundParticipant = await findParticipantInDB(eventId, email)
+    const foundParticipant = await findParticipantInDB(eventId, email, res)
 
     if (!foundParticipant) {
       const notFound = new NotFoundError('Participant', 'email')
       return sendMessageResponse(res, notFound.code, notFound.message)
     }
-    console.log('foundParticipant: ', foundParticipant)
 
-    const updated = await updateVoteInDB(eventId, email, req.body.votedSlots)
-    return sendDataResponse(res, 201, updated)
+    const participant = await dbClient.participant.delete({
+      where: { email_eventId: { email, eventId } },
+    })
+    const event = await findEventInDB(foundInvitation.eventId)
+
+    return sendDataResponse(res, 201, { event, participant })
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
     throw err
