@@ -89,23 +89,19 @@ export async function verifyUser(req, res) {
       )
     }
 
-    // check if the verification record has expired
     const { expiresAt } = foundVerification
     if (expiresAt < Date.now()) {
-      // delete the record and the user if expired
       await dbClient.userVerification.delete({ where: { userId } })
       await dbClient.user.delete({ where: { userId } })
       return sendMessageResponse(res, 401, 'Link has expired. Please sign up again.')
     }
 
-    // validate the unique string
     const isValidString = compareHash(uniqueString, foundVerification.uniqueString)
 
     if (!isValidString) {
       return sendMessageResponse(res, 401, 'Invalid verification details passed. Check your inbox.')
     }
 
-    //update the user record
     const updatedUser = await dbClient.user.update({
       where: { id: userId },
       data: { isVerified: true },

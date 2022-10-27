@@ -21,10 +21,8 @@ export async function sendVerificationEmail(id, email, uniqueString) {
       clientUrl + '/signup/verify/' + id + '/' + uniqueString
     }>here</a> to proceed.</p>`,
   }
-  console.log('url: ', clientUrl + '/signup/verify/' + id + '/' + uniqueString)
 
   try {
-    console.log('sending email')
     transporter.sendMail(mailOptions)
   } catch (err) {
     throw err
