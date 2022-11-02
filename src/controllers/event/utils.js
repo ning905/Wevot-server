@@ -50,8 +50,14 @@ export async function createEventInDB(data, hostId, res) {
 
 export async function createInvitationInDB(eventId, expiresAt) {
   try {
-    const invitation = await dbClient.invitation.create({
-      data: {
+    const invitation = await dbClient.invitation.upsert({
+      where: {
+        eventId,
+      },
+      update: {
+        expiresAt,
+      },
+      create: {
         event: { connect: { id: eventId } },
         expiresAt,
       },
@@ -72,7 +78,7 @@ export async function findInvitationInDB(id) {
   }
 }
 
-export async function updateEventInDB(id, data) {
+export async function updateEventInDB(eventId, data, res) {
   const { title, description, posterUrl, slots } = data
   if (!title) {
     const err = new BadRequestError('An event must have a title')
@@ -80,17 +86,40 @@ export async function updateEventInDB(id, data) {
   }
 
   try {
-    await dbClient.slot.deleteMany({ where: { eventId: id } })
+    const noUpdateSlotIds = []
+    const slotsToAdd = []
+
+    slots.forEach((s) => {
+      if (s.id) {
+        noUpdateSlotIds.push(s.id)
+      } else {
+        slotsToAdd.push(s)
+      }
+    })
+
+    const slotsDeleteQuery = { where: { eventId } }
+
+    if (noUpdateSlotIds.length) {
+      slotsDeleteQuery.where = {
+        AND: [{ eventId }, { id: { notIn: noUpdateSlotIds } }],
+      }
+    }
+    await dbClient.slot.deleteMany(slotsDeleteQuery)
 
     const updated = await dbClient.event.update({
-      where: { id },
+      where: { id: eventId },
       data: {
         title,
         description,
         posterUrl,
-        slots: { createMany: { data: slots } },
+        slots: {
+          createMany: {
+            data: slotsToAdd,
+          },
+        },
       },
       include: {
+        participants: true,
         slots: {
           include: {
             participants: true,

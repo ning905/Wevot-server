@@ -11,6 +11,7 @@ import {
   updateVoteInDB,
 } from './utils.js'
 import 'dotenv/config'
+import { sendEditEventEmail } from '../../utils/sendEmails.js'
 
 const serverError = new InternalServerError()
 
@@ -88,7 +89,7 @@ export async function createEvent(req, res) {
   try {
     const event = await createEventInDB(req.body, req.user.id, res)
 
-    const invitation = await createInvitationInDB(event.id, req.body.deadline)
+    await createInvitationInDB(event.id, req.body.deadline)
     sendDataResponse(res, 201, event)
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
@@ -112,7 +113,17 @@ export async function updateEventById(req, res) {
       return sendMessageResponse(res, noAccess.code, noAccess.message)
     }
 
-    const updated = await updateEventInDB(foundEvent.id, req.body)
+    const updated = await updateEventInDB(foundEvent.id, req.body, res)
+    await createInvitationInDB(foundEvent.id, req.body.deadline)
+
+    for (let i = 0; i < updated.participants.length; i++) {
+      await sendEditEventEmail(
+        updated.invitation.id,
+        updated.participants[i].email,
+        foundEvent.title
+      )
+    }
+
     sendDataResponse(res, 201, updated)
   } catch (err) {
     sendMessageResponse(res, serverError.code, serverError.message)
@@ -202,10 +213,6 @@ export async function deleteParticipantForEvent(req, res) {
         404,
         'Event does not exist or has been closed by the organizer.'
       )
-    }
-
-    if (foundInvitation.expiresAt < Date.now()) {
-      return sendMessageResponse(res, 401, 'This invitation has expired.')
     }
 
     const eventId = foundInvitation.eventId
