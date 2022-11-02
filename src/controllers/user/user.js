@@ -9,7 +9,7 @@ import {
   ServerConflictError,
 } from '../../utils/Errors.js'
 import { sendDataResponse, sendMessageResponse } from '../../utils/serverResponse.js'
-import { sendVerificationEmail } from './validateEmail.js'
+import { sendVerificationEmail } from '../../utils/sendEmails.js'
 import { createUserInDB, createVerificationInDB } from './utils.js'
 import { compareHash, hashData } from '../../utils/hashData.js'
 import { v4 as uuid } from 'uuid'

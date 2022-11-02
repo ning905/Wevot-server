@@ -21,6 +21,25 @@ export async function sendVerificationEmail(id, email, uniqueString) {
       clientUrl + '/signup/verify/' + id + '/' + uniqueString
     }>here</a> to proceed.</p>`,
   }
+  console.log('url: ', clientUrl + '/signup/verify/' + id + '/' + uniqueString)
+  try {
+    transporter.sendMail(mailOptions)
+  } catch (err) {
+    throw err
+  }
+}
+
+export async function sendEditEventEmail(code, email, eventTitle) {
+  const clientUrl = process.env.CLIENT_URL
+
+  const mailOptions = {
+    from: process.env.AUTH_EMAIL,
+    to: email,
+    subject: 'An event you joined has been updated',
+    html: `<p>The event <b>${eventTitle}</b> has just been updated by the host.</p><p>Click <a href=${
+      clientUrl + '/events/participate/' + code
+    }>here</a> to check the details,</p><p>or use this code <b>${code}</b> to join on the website.</p>`,
+  }
 
   try {
     transporter.sendMail(mailOptions)
