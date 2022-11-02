@@ -44,13 +44,16 @@ export async function validateAuthentication(req, res, next) {
     username = decoded.username
   })
 
-  const foundUser = await dbClient.user.findUnique({ where: { username } })
-  if (!foundUser) {
-    const noAccess = new NoAccessError('Invalid token')
-    return sendMessageResponse(res, noAccess.code, noAccess.message)
+  if (username) {
+    const foundUser = await dbClient.user.findUnique({ where: { username } })
+    if (!foundUser) {
+      const noAccess = new NoAccessError('Invalid token')
+      return sendMessageResponse(res, noAccess.code, noAccess.message)
+    }
+
+    delete foundUser.password
+    req.user = foundUser
   }
 
-  delete foundUser.password
-  req.user = foundUser
   next()
 }
