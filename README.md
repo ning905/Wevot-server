@@ -16,7 +16,7 @@ This project is built for the Boolean Course as the final personal project.
 
 Project is created with:
 
-JavaScript, Node.js, Express.js, Prisma, PostgreSQL, JSON Web Token, bcrypt
+JavaScript, Node.js, Express.js, Prisma, PostgreSQL, JSON Web Token, bcrypt, Nodemailer
 
 This server is deployed by AWS.
 
