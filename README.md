@@ -6,14 +6,6 @@ An event scheduling app for people who want to meet up but find it hard deciding
 
 A user can create an event with multiple potential time slots and invite their fiends to vote on their preferred slot.
 
-## Table of contents
-
-- [WeVot](#wevot)
-  - [Table of contents](#table-of-contents)
-  - [General info](#general-info)
-  - [Technologies](#technologies)
-  - [Run this project locally](#run-this-project-locally)
-
 ## General info
 
 This is the server repository for WeVot app. You can find the [client repository](https://github.com/ning905/Wevot-client) here.
