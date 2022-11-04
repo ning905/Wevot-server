@@ -25,4 +25,4 @@ This server is deployed by AWS.
 1. Fork this repository and clone the fork to your machine.
 2. `npm install`
 3. `npm start`
-4. Fork the [https://wevot.netlify.app/](https://wevot.netlify.app/) and follow the instructions.
+4. Fork the [client repository](https://github.com/ning905/Wevot-client) and follow the instructions.
