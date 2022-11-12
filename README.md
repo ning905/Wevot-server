@@ -8,7 +8,7 @@ A user can create an event with multiple potential time slots and invite their f
 
 ## General info
 
-This is the server repository for WeVot app. You can find the [client repository](https://github.com/ning905/Wevot-client) here.
+This is the server repository for WeVot app. You can find the client repository [here](https://github.com/ning905/Wevot-client).
 
 This project is built for the Boolean Course as the final personal project.
 
